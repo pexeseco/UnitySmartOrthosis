@@ -1,0 +1,62 @@
+using UnityEngine;
+using System.IO;
+
+public class FileSelector : MonoBehaviour
+{
+    public void OpenFileExplorer()
+    {
+        // Open a file panel to select a file
+        string filePath = UnityEditor.EditorUtility.OpenFilePanel("Select .obj file", "", "obj");
+
+        // If a file was selected
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            // Check if the selected file has the .obj extension
+            if (Path.GetExtension(filePath).ToLower() == ".obj")
+            {
+                // Copy the file path to the system clipboard
+                GUIUtility.systemCopyBuffer = filePath;
+
+                // Load the .obj file or perform other operations
+                Debug.Log("Selected .obj file: " + filePath);
+                Debug.Log("File path copied to clipboard.");
+            }
+            else
+            {
+                Debug.LogError("Please select a .obj file.");
+            }
+        }
+    }
+}
+--------------------------------------------------------------------------------------------------
+using UnityEngine;
+using UnityEditor;
+using System.IO;
+
+public class ExcelFileSelector : MonoBehaviour
+{
+    public void OpenFileExplorer()
+    {
+        // Open a file panel to select a file
+        string filePath = EditorUtility.OpenFilePanel("Select Excel file", "", "xlsx");
+
+        // If a file was selected
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            // Check if the selected file has the .xlsx extension
+            if (Path.GetExtension(filePath).ToLower() == ".xlsx")
+            {
+                // Copy the file path to the system clipboard
+                GUIUtility.systemCopyBuffer = filePath;
+
+                // Load the Excel file or perform other operations
+                Debug.Log("Selected Excel file: " + filePath);
+                Debug.Log("File path copied to clipboard.");
+            }
+            else
+            {
+                Debug.LogError("Please select an Excel file with .xlsx extension.");
+            }
+        }
+    }
+}
