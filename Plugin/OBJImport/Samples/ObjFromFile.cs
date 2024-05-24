@@ -1,11 +1,10 @@
 ﻿using UnityEngine;
 using System.IO;
-using System.Linq;
 using Dummiesman;
 
 public class ObjFromFile : MonoBehaviour
 {
-    public GameObject parentObject; // Reference to the empty GameObject that will be the 
+    public GameObject parentObject; // Reference to the empty GameObject that will be the parent
     string objPath = string.Empty;
     string error = string.Empty;
 
@@ -59,9 +58,17 @@ public class ObjFromFile : MonoBehaviour
 
             if (objPrefab != null)
             {
-                // Rotate and position the object as you did before
+                // Center the pivot
+                CenterPivot(objPrefab);
+
+                // Set the desired position
+                objPrefab.transform.position = new Vector3(1523.5f, 563.2f, 98f);
+
+                // Set the scale factor
+                objPrefab.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+
+                // Rotate the object as needed
                 objPrefab.transform.Rotate(0f, 180f, 0f);
-                objPrefab.transform.Translate(new Vector3(-1530f, 30f, -300f));
 
                 // Check if parentObject reference is assigned and set parent accordingly
                 if (parentObject != null)
@@ -73,6 +80,9 @@ public class ObjFromFile : MonoBehaviour
                     Debug.LogWarning("ParentObject is not assigned. Object will be parented to this GameObject.");
                     objPrefab.transform.SetParent(this.transform);
                 }
+
+                // Attach the Sliceable.cs script to the loaded object and its children
+                AttachSliceableRecursively(objPrefab);
 
                 // Change the material of the loaded object to defaultMat
                 Material defaultMat = Resources.Load<Material>("HeadMaterial");
@@ -94,12 +104,21 @@ public class ObjFromFile : MonoBehaviour
                     Debug.LogError("Failed to find default material named 'defaultMat'. Make sure it exists in the project's assets.");
                 }
 
-                // Add MeshCollider as before
-                Transform childWithMesh = FindChildWithMesh(objPrefab.transform);
-                if (childWithMesh != null)
+                // Set read/write enabled and generate colliders for the mesh
+                MeshFilter[] meshFilters = objPrefab.GetComponentsInChildren<MeshFilter>();
+                foreach (MeshFilter meshFilter in meshFilters)
                 {
-                    MeshCollider meshCollider = childWithMesh.gameObject.AddComponent<MeshCollider>();
-                    meshCollider.convex = false;
+                    Mesh mesh = meshFilter.sharedMesh;
+                    if (mesh != null)
+                    {
+                        // Enable read/write on the mesh
+                        mesh.UploadMeshData(false);
+
+                        // Generate colliders
+                        MeshCollider meshCollider = meshFilter.gameObject.AddComponent<MeshCollider>();
+                        meshCollider.sharedMesh = mesh;
+                        meshCollider.convex = false;
+                    }
                 }
 
                 error = string.Empty;
@@ -108,6 +127,59 @@ public class ObjFromFile : MonoBehaviour
             {
                 error = "Failed to load object.";
             }
+        }
+    }
+
+    void CenterPivot(GameObject obj)
+    {
+        // Calculate the center of the bounding box
+        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0) return;
+
+        Bounds bounds = renderers[0].bounds;
+        foreach (Renderer renderer in renderers)
+        {
+            bounds.Encapsulate(renderer.bounds);
+        }
+
+        Vector3 center = bounds.center;
+
+        // Offset all vertices by the center
+        MeshFilter[] meshFilters = obj.GetComponentsInChildren<MeshFilter>();
+        foreach (MeshFilter meshFilter in meshFilters)
+        {
+            Mesh mesh = meshFilter.mesh;
+            Vector3[] vertices = mesh.vertices;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] -= center;
+            }
+            mesh.vertices = vertices;
+            mesh.RecalculateBounds();
+        }
+
+        // Move the object's position by the center offset
+        obj.transform.position += center;
+    }
+
+    // Helper method to recursively attach Sliceable script to the object and its children
+    private void AttachSliceableRecursively(GameObject obj)
+    {
+        // Attach Sliceable script to the object
+        var sliceableType = System.Type.GetType("Sliceable, Assembly-CSharp"); // Assuming your script is in the default assembly.
+        if (sliceableType != null)
+        {
+            obj.AddComponent(sliceableType);
+        }
+        else
+        {
+            Debug.LogError("Failed to find type 'Sliceable'. Make sure the script is properly defined and included in the project.");
+        }
+
+        // Attach Sliceable script to children recursively
+        foreach (Transform child in obj.transform)
+        {
+            AttachSliceableRecursively(child.gameObject);
         }
     }
 
