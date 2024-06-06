@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using TMPro;
 
 public class IntersectionProjection : MonoBehaviour
 {
@@ -11,6 +12,7 @@ public class IntersectionProjection : MonoBehaviour
     public Material lineMaterial; // Material for the line renderer
     public Material circleMaterial; // Material for the circle renderer
     public RawImage imageDisplay; // RawImage UI element to display the rendered texture
+    public TMP_Text textDisplay; // Reference to the TMP Text UI element for displaying messages
 
     // Custom class to hold point and angle information
     class PointWithAngle
@@ -18,6 +20,7 @@ public class IntersectionProjection : MonoBehaviour
         public GameObject Point { get; set; }
         public float Angle { get; set; }
     }
+
 
     public void ProjectTo2D()
     {
@@ -71,7 +74,7 @@ public class IntersectionProjection : MonoBehaviour
             GameObject point = Instantiate(pointPrefab, panel);
 
             // Set the name of the UI element to the name of the IntersectionObject
-            point.name = intersectionObject.name;
+            point.name = intersectionObject.name + "Projected";
 
             // Set the position of the UI element within the panel
             RectTransform pointTransform = point.GetComponent<RectTransform>();
@@ -81,10 +84,11 @@ public class IntersectionProjection : MonoBehaviour
         }
 
         // Create a new UI element (point) representing the average point
-        GameObject avgPoint = Instantiate(pointPrefab, panel);
-        avgPoint.name = averagePointObject.name; // Set the name
-        RectTransform avgPointTransform = avgPoint.GetComponent<RectTransform>();
+        GameObject avgPointDraw = Instantiate(pointPrefab, panel);
+        avgPointDraw.name = "avgPointDraw";
+        RectTransform avgPointTransform = avgPointDraw.GetComponent<RectTransform>();
         avgPointTransform.anchoredPosition = panel.sizeDelta / 2f; // Position at the center of the panel
+
 
         // Calculate the angle of each point relative to the average point and sort them
         Vector2 averagePointScreenPosition = panel.sizeDelta / 2f; // Assuming averagePoint is at the center of the panel
@@ -104,25 +108,49 @@ public class IntersectionProjection : MonoBehaviour
         lineRenderer.useWorldSpace = false; // Ensure it uses the panel's local space
 
         // Set the number of positions in the LineRenderer for the existing line
-        lineRenderer.positionCount = pointsWithAngles.Count; // Exclude the average point
+        lineRenderer.positionCount = pointsWithAngles.Count;
 
-        // Set the positions of the LineRenderer for the existing line (excluding the average point)
+        // Set the positions of the LineRenderer for the existing line
         for (int i = 0; i < pointsWithAngles.Count; i++)
         {
             Vector2 pointPosition = pointsWithAngles[i].Point.GetComponent<RectTransform>().anchoredPosition;
             lineRenderer.SetPosition(i, new Vector3(pointPosition.x, pointPosition.y, 0));
         }
 
+        // Create a LineRenderer for connecting the last point to the first point
+        GameObject connectingLineObject = new GameObject("ConnectingLineRenderer");
+        connectingLineObject.transform.SetParent(panel.transform, false);
+        LineRenderer connectingLineRenderer = connectingLineObject.AddComponent<LineRenderer>();
+        connectingLineRenderer.material = lineMaterial;
+        connectingLineRenderer.widthMultiplier = 3f;
+        connectingLineRenderer.useWorldSpace = false; // Ensure it uses the panel's local space
+
+        // Set the positions for the connecting line
+        Vector3 firstPointPosition = pointsWithAngles[0].Point.GetComponent<RectTransform>().anchoredPosition;
+        Vector3 lastPointPosition = pointsWithAngles[pointsWithAngles.Count - 1].Point.GetComponent<RectTransform>().anchoredPosition;
+        connectingLineRenderer.positionCount = 2;
+        connectingLineRenderer.SetPositions(new Vector3[] { firstPointPosition, lastPointPosition });
+
+        // Add EdgeCollider component to the connectingLineObject
+        EdgeCollider2D connectingEdgeCollider = connectingLineObject.AddComponent<EdgeCollider2D>();
+        connectingEdgeCollider.points = new Vector2[] { firstPointPosition, lastPointPosition };
+
+        // Add EdgeCollider component to the lineObject
+        EdgeCollider2D edgeCollider = lineObject.AddComponent<EdgeCollider2D>();
+        edgeCollider.points = pointsWithAngles.Select(point => point.Point.GetComponent<RectTransform>().anchoredPosition).ToArray();
+
+
         // Calculate perimeter and print to console
         float perimeter = CalculatePerimeter(pointsWithAngles);
+        string perimeterMessage = perimeter.ToString();
+        Debug.Log(perimeterMessage);
+        if (textDisplay != null)
+            textDisplay.text = perimeterMessage;
         Debug.Log("Perimeter: " + perimeter);
 
         // Calculate the average distance
-        float averageDistance = CalculateAverageDistance(averagePointScreenPosition, projectedPoints);
+        float averageDistance = CalculateAverageDistance(averagePointScreenPosition, projectedPoints);    
         Debug.Log("Average Distance: " + averageDistance);
-
-        // Draw the circle with the average distance
-        DrawCircle(averagePointScreenPosition, averageDistance, 100, Color.red);
 
         // Create centered lines
         CreateCenteredLines(panel, averagePointScreenPosition);
@@ -133,17 +161,65 @@ public class IntersectionProjection : MonoBehaviour
             Destroy(intersectionObject);
         }
 
-        // Destroy the average point object
-        Destroy(averagePointObject);
-
         // Destroy all projected points
         foreach (var point in projectedPoints)
         {
             Destroy(point);
         }
 
+        PerformRaycasting(avgPointDraw);
+
+        // Calculate and print distances between specific intersection points
+        CalculateAndPrintIntersectionDistances();
+
         // Render the panel to an image and display it
         RenderPanelToImage();
+    }
+
+    // Function to calculate and print distances between specific intersection points
+    void CalculateAndPrintIntersectionDistances()
+    {
+        GameObject intersectionPoint0 = GameObject.Find("IntersectionPoint0");
+        GameObject intersectionPoint1 = GameObject.Find("IntersectionPoint1");
+        GameObject intersectionPoint2 = GameObject.Find("IntersectionPoint2");
+        GameObject intersectionPoint3 = GameObject.Find("IntersectionPoint3");
+        GameObject intersectionPoint4 = GameObject.Find("IntersectionPoint4");
+        GameObject intersectionPoint5 = GameObject.Find("IntersectionPoint5");
+        GameObject intersectionPoint6 = GameObject.Find("IntersectionPoint6");
+        GameObject intersectionPoint7 = GameObject.Find("IntersectionPoint7");
+
+        if (intersectionPoint0 != null && intersectionPoint1 != null && intersectionPoint2 != null && intersectionPoint3 != null && intersectionPoint4 != null && intersectionPoint5 != null && intersectionPoint6 != null && intersectionPoint7 != null)
+        {
+            float distance01 = Vector2.Distance(intersectionPoint0.transform.position, intersectionPoint1.transform.position);
+            float distance23 = Vector2.Distance(intersectionPoint2.transform.position, intersectionPoint3.transform.position);
+            float distance47 = Vector2.Distance(intersectionPoint4.transform.position, intersectionPoint7.transform.position);
+            float distance56 = Vector2.Distance(intersectionPoint5.transform.position, intersectionPoint6.transform.position);
+
+            Debug.Log("Distance between IntersectionPoint0 and IntersectionPoint1: " + distance01);
+            Debug.Log("Distance between IntersectionPoint2 and IntersectionPoint3: " + distance23);
+            Debug.Log("Distance between IntersectionPoint4 and IntersectionPoint7: " + distance47);
+            Debug.Log("Distance between IntersectionPoint5 and IntersectionPoint6: " + distance56);
+            // Calculate difference between highest and lowest of distance47 and distance56
+            float highestDistance = Mathf.Max(distance47, distance56);
+            float lowestDistance = Mathf.Min(distance47, distance56);
+            float difference = highestDistance - lowestDistance;
+            float divisionResult = highestDistance != 0 ? difference / highestDistance : 0;
+
+            // Round divisionResult to 3 decimal places
+            divisionResult = Mathf.Round(divisionResult * 1000f) / 1000f;
+
+            // Update TMP Text
+            if (textDisplay != null)
+            {
+                string intersectionDistances = distance01 + "\n" + distance23 + "\n" + distance47 + "\n" + distance56 + "\n" + divisionResult + "%";
+                    
+                textDisplay.text += "\n" + intersectionDistances;
+            }
+        }
+        else
+        {
+            Debug.LogWarning("One or more intersection points not found!");
+        }
     }
 
     // Function to calculate the perimeter of the shape
@@ -173,28 +249,6 @@ public class IntersectionProjection : MonoBehaviour
             totalDistance += Vector2.Distance(averagePointScreenPosition, pointPosition);
         }
         return totalDistance / projectedPoints.Count;
-    }
-
-    // Function to draw a circle
-    void DrawCircle(Vector2 center, float radius, int segments, Color color)
-    {
-        GameObject circleObject = new GameObject("CircleRenderer");
-        circleObject.transform.SetParent(panel.transform, false);
-        LineRenderer circleRenderer = circleObject.AddComponent<LineRenderer>();
-        circleRenderer.material = new Material(circleMaterial); // Use a different material for the circle
-        circleRenderer.material.color = color; // Set the circle color
-        circleRenderer.widthMultiplier = 3f;
-        circleRenderer.useWorldSpace = false;
-
-        circleRenderer.positionCount = segments + 1;
-        float angle = 0f;
-        for (int i = 0; i <= segments; i++)
-        {
-            float x = Mathf.Cos(angle) * radius + center.x;
-            float y = Mathf.Sin(angle) * radius + center.y;
-            circleRenderer.SetPosition(i, new Vector3(x, y, 0));
-            angle += 2f * Mathf.PI / segments;
-        }
     }
 
     // Function to create centered lines
@@ -229,6 +283,69 @@ public class IntersectionProjection : MonoBehaviour
         horizontalLinePositions[1] = new Vector3(averagePointScreenPosition.x + panel.rect.xMax - 10, averagePointScreenPosition.y, 0);
         horizontalLineRenderer.positionCount = 2;
         horizontalLineRenderer.SetPositions(horizontalLinePositions);
+
+        // Create lines rotated by +15 and -15 degrees from the horizontal line
+        CreateRotatedLine(panel, averagePointScreenPosition, horizontalLinePositions, 15f, "RotatedLine15");
+        CreateRotatedLine(panel, averagePointScreenPosition, horizontalLinePositions, -15f, "RotatedLine-15");
+
+    }
+
+    // Helper function to create a rotated line
+    void CreateRotatedLine(RectTransform panel, Vector2 center, Vector3[] baseLinePositions, float angle, string name)
+    {
+        GameObject rotatedLineObject = new GameObject(name);
+        rotatedLineObject.transform.SetParent(panel.transform, false);
+        LineRenderer rotatedLineRenderer = rotatedLineObject.AddComponent<LineRenderer>();
+        rotatedLineRenderer.material = lineMaterial;
+        rotatedLineRenderer.widthMultiplier = 3f;
+        rotatedLineRenderer.useWorldSpace = false; // Ensure it uses the panel's local space
+
+        float radians = angle * Mathf.Deg2Rad;
+        float cos = Mathf.Cos(radians);
+        float sin = Mathf.Sin(radians);
+
+        Vector3[] rotatedLinePositions = new Vector3[2];
+        for (int i = 0; i < baseLinePositions.Length; i++)
+        {
+            float dx = baseLinePositions[i].x - center.x;
+            float dy = baseLinePositions[i].y - center.y;
+            float newX = dx * cos - dy * sin + center.x;
+            float newY = dx * sin + dy * cos + center.y;
+            rotatedLinePositions[i] = new Vector3(newX, newY, 0);
+        }
+
+        rotatedLineRenderer.positionCount = 2;
+        rotatedLineRenderer.SetPositions(rotatedLinePositions);
+    }
+
+    void PerformRaycasting(GameObject avgPointDraw)
+    {
+        // Directions for raycasting
+        Vector2[] directions = {
+        Vector2.right, Vector2.left, Vector2.up, Vector2.down,
+        new Vector2(Mathf.Cos(Mathf.Deg2Rad * 15f), Mathf.Sin(Mathf.Deg2Rad * 15f)),
+        new Vector2(Mathf.Cos(Mathf.Deg2Rad * 15f), -Mathf.Sin(Mathf.Deg2Rad * 15f)),
+        new Vector2(-Mathf.Cos(Mathf.Deg2Rad * 15f), Mathf.Sin(Mathf.Deg2Rad * 15f)),
+        new Vector2(-Mathf.Cos(Mathf.Deg2Rad * 15f), -Mathf.Sin(Mathf.Deg2Rad * 15f))
+    };
+
+        RaycastHit2D hit;
+        for (int i = 0; i < directions.Length; i++)
+        {
+            Vector2 direction = directions[i];
+            hit = Physics2D.Raycast(avgPointDraw.transform.position, direction);
+            if (hit.collider != null)
+            {
+                // Check if the collider is an EdgeCollider2D
+                EdgeCollider2D edgeCollider = hit.collider.GetComponent<EdgeCollider2D>();
+                if (edgeCollider != null)
+                {
+                    // Instantiate point prefab at intersection point
+                    GameObject point = Instantiate(pointPrefab, hit.point, Quaternion.identity);
+                    point.name = "IntersectionPoint" + i; // Set a unique name
+                }
+            }
+        }
     }
 
     // Function to render the panel to an image and display it

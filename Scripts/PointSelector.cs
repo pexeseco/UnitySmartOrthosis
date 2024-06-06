@@ -6,7 +6,6 @@ using UnityEngine.UI;
 public class PointSelector : MonoBehaviour
 {
     public Camera mainCamera; // The main camera
-    public TextMeshProUGUI coordinatesText;
     public TMP_Dropdown pointNameDropdown; // TMP dropdown for selecting point names
     public Button toggleButton; // Button to toggle point selection mode
     public GameObject pointIndicatorPrefab; // Prefab for the point indicator
@@ -70,8 +69,6 @@ public class PointSelector : MonoBehaviour
                     selectedPoints[selectedName] = selectedPoint;
 
                     Debug.Log("Selected point " + selectedName + " at " + hit.point);
-
-                    ShowPointCoordinates();
                 }
             }
         }
@@ -85,29 +82,5 @@ public class PointSelector : MonoBehaviour
             // Make the indicator face the camera
             indicator.transform.LookAt(mainCamera.transform);
         }
-    }
-
-    private void ShowPointCoordinates()
-    {
-        string coordinatesString = "Point Coordinates:\n";
-
-        // Iterate over each selected point in the dictionary
-        foreach (var kvp in selectedPoints)
-        {
-            string pointName = kvp.Key;
-            GameObject pointObject = kvp.Value;
-
-            // Get the local position relative to the parent object
-            Vector3 localPosition = pointObject.transform.localPosition;
-
-            // Transform the local position to world space
-            Vector3 worldPosition = pointObject.transform.TransformPoint(localPosition);
-
-            // Append the point's name and coordinates to the coordinatesString
-            coordinatesString += $"{pointName}: ({worldPosition.x:F2}, {worldPosition.y:F2}, {worldPosition.z:F2})\n";
-        }
-
-        // Update the coordinatesText with the formatted string
-        coordinatesText.text = coordinatesString;
     }
 }
