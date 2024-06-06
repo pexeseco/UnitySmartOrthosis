@@ -401,7 +401,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &77795036
 RectTransform:
   m_ObjectHideFlags: 0
@@ -417,7 +417,6 @@ RectTransform:
   - {fileID: 563036231}
   - {fileID: 2034087685}
   - {fileID: 619244895}
-  - {fileID: 1907704163}
   - {fileID: 1815545839}
   - {fileID: 604727636}
   - {fileID: 292907082}
@@ -3499,18 +3498,6 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2034087684}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
       - m_Target: {fileID: 619244894}
         m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
         m_MethodName: SetActive
@@ -4333,7 +4320,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 821336992}
-  coordinatesText: {fileID: 639020474}
   pointNameDropdown: {fileID: 1707064194}
   toggleButton: {fileID: 604727633}
   pointIndicatorPrefab: {fileID: 613786182}
@@ -4455,7 +4441,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &619244895
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4472,6 +4458,7 @@ RectTransform:
   - {fileID: 1059635505}
   - {fileID: 1844825538}
   - {fileID: 725597292}
+  - {fileID: 1907704163}
   m_Father: {fileID: 77795036}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -5648,6 +5635,7 @@ MonoBehaviour:
   lineMaterial: {fileID: 2100000, guid: 28326722d2ceb407cb9fbe257ece9423, type: 2}
   circleMaterial: {fileID: 2100000, guid: 7f1ff192fae67804ea00436137414b10, type: 2}
   imageDisplay: {fileID: 1907704164}
+  textDisplay: {fileID: 639020474}
 --- !u!114 &725597294
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7868,18 +7856,6 @@ MonoBehaviour:
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 2034087684}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
         m_CallState: 2
 --- !u!114 &1059635507
 MonoBehaviour:
@@ -12244,24 +12220,18 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Cranial Base Difference:
+  m_text: 'Cranial circmf:
 
-    Circumference:
+    Cranial width:
 
-    Cranial Width:
+    Cranial length:
 
-    Cranial
-    Length:
+    OT diagonal
+    1:
 
-    CR:
+    OT diagonal 2:
 
-    CVA:
-
-    Overall Symmetry Ratio:
-
-    Diagonal1:
-
-    Diagonal2:'
+    CVA index:'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -13986,14 +13956,14 @@ RectTransform:
   m_GameObject: {fileID: 1907704162}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2.4999998, y: 2.4999998, z: 2.4999998}
+  m_LocalScale: {x: 2.4999995, y: 2.4999995, z: 2.4999995}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 77795036}
+  m_Father: {fileID: 619244895}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -369.00003, y: -7.4093933}
+  m_AnchoredPosition: {x: -0.000061035156, y: 21.49061}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1907704164
