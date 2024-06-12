@@ -6,11 +6,13 @@ public class SaveData : MonoBehaviour
     public TMP_InputField inputField1;
     public TMP_InputField inputField2;
     public TMP_InputField inputField3;
+    public TMP_Text inputField4;
     public TextMeshProUGUI displayTextMeshPro; // Reference to TextMeshPro object to display saved text1
 
     private string text1; // Store text1
     private string text2; // Store text2
     private string text3; // Store text3
+    private string text4; // Store text4
 
     public void SaveDataInMemory()
     {
@@ -18,6 +20,7 @@ public class SaveData : MonoBehaviour
         text1 = inputField1.text;
         text2 = inputField2.text;
         text3 = inputField3.text;
+        text4 = inputField4.text;
 
         // Display a message indicating the data is saved
         Debug.Log("Data saved in memory.");
@@ -49,5 +52,11 @@ public class SaveData : MonoBehaviour
     public string GetText3()
     {
         return text3;
+    }
+
+    // Method to access the saved text4
+    public string GetText4()
+    {
+        return text4;
     }
 }

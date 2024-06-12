@@ -13,6 +13,9 @@ public class IntersectionProjection : MonoBehaviour
     public Material circleMaterial; // Material for the circle renderer
     public RawImage imageDisplay; // RawImage UI element to display the rendered texture
     public TMP_Text textDisplay; // Reference to the TMP Text UI element for displaying messages
+    public TMP_Text textDisplayDg; // Reference to the TMP Text UI element for displaying messages
+
+    private List<GameObject> createdObjects = new List<GameObject>();
 
     // Custom class to hold point and angle information
     class PointWithAngle
@@ -24,6 +27,9 @@ public class IntersectionProjection : MonoBehaviour
 
     public void ProjectTo2D()
     {
+        // Clear previously created objects
+        ClearPreviousObjects();
+
         // Find all objects with the tag "IntersectionObject"
         GameObject[] intersectionObjects = GameObject.FindGameObjectsWithTag("IntersectionObject");
 
@@ -72,6 +78,7 @@ public class IntersectionProjection : MonoBehaviour
 
             // Create a new UI element (point) representing the projected point
             GameObject point = Instantiate(pointPrefab, panel);
+            createdObjects.Add(point);
 
             // Set the name of the UI element to the name of the IntersectionObject
             point.name = intersectionObject.name + "Projected";
@@ -85,6 +92,7 @@ public class IntersectionProjection : MonoBehaviour
 
         // Create a new UI element (point) representing the average point
         GameObject avgPointDraw = Instantiate(pointPrefab, panel);
+        createdObjects.Add(avgPointDraw);
         avgPointDraw.name = "avgPointDraw";
         RectTransform avgPointTransform = avgPointDraw.GetComponent<RectTransform>();
         avgPointTransform.anchoredPosition = panel.sizeDelta / 2f; // Position at the center of the panel
@@ -101,6 +109,7 @@ public class IntersectionProjection : MonoBehaviour
 
         // Create a LineRenderer component for the existing line
         GameObject lineObject = new GameObject("LineRenderer");
+        createdObjects.Add(lineObject);
         lineObject.transform.SetParent(panel.transform, false);
         LineRenderer lineRenderer = lineObject.AddComponent<LineRenderer>();
         lineRenderer.material = lineMaterial;
@@ -119,6 +128,7 @@ public class IntersectionProjection : MonoBehaviour
 
         // Create a LineRenderer for connecting the last point to the first point
         GameObject connectingLineObject = new GameObject("ConnectingLineRenderer");
+        createdObjects.Add(connectingLineObject);
         connectingLineObject.transform.SetParent(panel.transform, false);
         LineRenderer connectingLineRenderer = connectingLineObject.AddComponent<LineRenderer>();
         connectingLineRenderer.material = lineMaterial;
@@ -149,7 +159,7 @@ public class IntersectionProjection : MonoBehaviour
         Debug.Log("Perimeter: " + perimeter);
 
         // Calculate the average distance
-        float averageDistance = CalculateAverageDistance(averagePointScreenPosition, projectedPoints);    
+        float averageDistance = CalculateAverageDistance(averagePointScreenPosition, projectedPoints);
         Debug.Log("Average Distance: " + averageDistance);
 
         // Create centered lines
@@ -170,15 +180,47 @@ public class IntersectionProjection : MonoBehaviour
         PerformRaycasting(avgPointDraw);
 
         // Calculate and print distances between specific intersection points
-        CalculateAndPrintIntersectionDistances();
+        CalculateAndPrintIntersectionDistances(perimeter);
 
         // Render the panel to an image and display it
         RenderPanelToImage();
     }
 
-    // Function to calculate and print distances between specific intersection points
-    void CalculateAndPrintIntersectionDistances()
+    // Function to clear previously created objects
+    void ClearPreviousObjects()
     {
+        foreach (var obj in createdObjects)
+        {
+            Destroy(obj);
+        }
+        createdObjects.Clear();
+
+        if (textDisplay != null)
+        {
+            textDisplay.text = "";
+        }
+
+        if (imageDisplay != null)
+        {
+            imageDisplay.texture = null;
+        }
+    }
+
+
+    // Function to calculate and print distances between specific intersection points
+    void CalculateAndPrintIntersectionDistances(float perimeter)
+    {
+        // Destroy previously created intersection points
+        for (int i = 0; i <= 7; i++)
+        {
+            GameObject previousIntersectionPoint = GameObject.Find("IntersectionPoint" + i);
+            if (previousIntersectionPoint != null)
+            {
+                Destroy(previousIntersectionPoint);
+            }
+        }
+
+        // Now, create or find the new intersection points as needed
         GameObject intersectionPoint0 = GameObject.Find("IntersectionPoint0");
         GameObject intersectionPoint1 = GameObject.Find("IntersectionPoint1");
         GameObject intersectionPoint2 = GameObject.Find("IntersectionPoint2");
@@ -188,6 +230,7 @@ public class IntersectionProjection : MonoBehaviour
         GameObject intersectionPoint6 = GameObject.Find("IntersectionPoint6");
         GameObject intersectionPoint7 = GameObject.Find("IntersectionPoint7");
 
+        // Ensure all intersection points are not null before proceeding
         if (intersectionPoint0 != null && intersectionPoint1 != null && intersectionPoint2 != null && intersectionPoint3 != null && intersectionPoint4 != null && intersectionPoint5 != null && intersectionPoint6 != null && intersectionPoint7 != null)
         {
             float distance01 = Vector2.Distance(intersectionPoint0.transform.position, intersectionPoint1.transform.position);
@@ -199,11 +242,16 @@ public class IntersectionProjection : MonoBehaviour
             Debug.Log("Distance between IntersectionPoint2 and IntersectionPoint3: " + distance23);
             Debug.Log("Distance between IntersectionPoint4 and IntersectionPoint7: " + distance47);
             Debug.Log("Distance between IntersectionPoint5 and IntersectionPoint6: " + distance56);
-            // Calculate difference between highest and lowest of distance47 and distance56
+
+            //Calculate CR
+            float CR = (distance01/distance23) * 100 ;
+            CR= Mathf.Round(CR * 1000f) / 1000f;
+
+            // Calculate difference between highest and lowest of distance47 and distance56 (CVA index)
             float highestDistance = Mathf.Max(distance47, distance56);
             float lowestDistance = Mathf.Min(distance47, distance56);
             float difference = highestDistance - lowestDistance;
-            float divisionResult = highestDistance != 0 ? difference / highestDistance : 0;
+            float divisionResult = highestDistance != 0 ? (( difference / highestDistance ) * 100 ) : 0;
 
             // Round divisionResult to 3 decimal places
             divisionResult = Mathf.Round(divisionResult * 1000f) / 1000f;
@@ -211,14 +259,53 @@ public class IntersectionProjection : MonoBehaviour
             // Update TMP Text
             if (textDisplay != null)
             {
-                string intersectionDistances = distance01 + "\n" + distance23 + "\n" + distance47 + "\n" + distance56 + "\n" + divisionResult + "%";
-                    
-                textDisplay.text += "\n" + intersectionDistances;
+                string intersectionDistances = perimeter + "\n" + distance01 + "\n" + distance23 + "\n" + distance47 + "\n" + distance56 + "\n" + divisionResult + "%" + "\n" + CR + "%";
+
+                // Set textDisplay text to the new values
+                textDisplay.text = intersectionDistances;
             }
-        }
-        else
-        {
-            Debug.LogWarning("One or more intersection points not found!");
+
+            // Determine the message for the second text display
+            string message = "";
+            if (CR > 85f)
+            {
+                if (divisionResult < 3.5f)
+                {
+                    message = "Brachycephaly";
+                }
+                else
+                {
+                    message = "Brachycephaly + Plagiocephaly";
+                }
+            }
+            else if (CR > 78f && CR <= 85f)
+            {
+                if (divisionResult < 3.5f)
+                {
+                    message = "Healthy";
+                }
+                else
+                {
+                    message = "Plagiocephaly";
+                }
+            }
+            else
+            {
+                if (divisionResult < 3.5f)
+                {
+                    message = "Scaphocephaly";
+                }
+                else
+                {
+                    message = "Scaphocephaly + Plagiocephaly";
+                }
+            }
+
+            // Update the second text display
+            if (textDisplayDg != null)
+            {
+                textDisplayDg.text = message;
+            }
         }
     }
 
@@ -348,33 +435,109 @@ public class IntersectionProjection : MonoBehaviour
         }
     }
 
-    // Function to render the panel to an image and display it
     void RenderPanelToImage()
     {
-        // Create a RenderTexture with the size of the panel
+        // Ensure the panel and imageDisplay are set
+        if (panel == null || imageDisplay == null)
+        {
+            Debug.LogWarning("Panel or ImageDisplay is not set!");
+            return;
+        }
+
+        // Clear previous texture
+        if (imageDisplay.texture != null)
+        {
+            DestroyImmediate(imageDisplay.texture);
+            imageDisplay.texture = null;
+        }
+
+        // Find the avgPointDraw object in the scene
+        GameObject avgPointDraw = GameObject.Find("avgPointDraw");
+        if (avgPointDraw == null)
+        {
+            Debug.LogWarning("avgPointDraw object not found!");
+            return;
+        }
+
+        // Ensure avgPointDraw has a RectTransform component
+        RectTransform avgPointRect = avgPointDraw.GetComponent<RectTransform>();
+        if (avgPointRect == null)
+        {
+            Debug.LogWarning("avgPointDraw does not have a RectTransform component!");
+            return;
+        }
+
+        // Find the camera with the tag "SecondaryCamera"
+        Camera renderCamera = GameObject.FindGameObjectWithTag("SecondaryCamera").GetComponent<Camera>();
+        if (renderCamera == null)
+        {
+            Debug.LogWarning("SecondaryCamera not found!");
+            return;
+        }
+
+        // Create a new RenderTexture with the size of the panel
         RenderTexture renderTexture = new RenderTexture((int)panel.rect.width, (int)panel.rect.height, 24);
+        renderCamera.targetTexture = renderTexture;
 
-        // Set the RenderTexture as the target of the Canvas
-        Canvas canvas = panel.GetComponentInParent<Canvas>();
-        CanvasRenderer canvasRenderer = panel.GetComponent<CanvasRenderer>();
-        canvasRenderer.SetMaterial(new Material(Shader.Find("UI/Default")), null);
-        canvasRenderer.SetTexture(renderTexture);
+        // Configure the Camera to render the panel
+        renderCamera.orthographic = true;
 
-        // Force a render of the Canvas
-        canvas.enabled = false;
-        canvas.enabled = true;
+        // Adjust the orthographic size to ensure the entire drawing is visible
+        float orthographicSizeMultiplier = 1.2f; // Increase the size to make sure the whole drawing fits
+        renderCamera.orthographicSize = panel.rect.height / 2 * orthographicSizeMultiplier;
+        renderCamera.aspect = panel.rect.width / panel.rect.height;
 
-        // Create a new texture and read the render texture into it
+        // Set the camera to clear with a solid color instead of showing the skybox
+        renderCamera.clearFlags = CameraClearFlags.SolidColor;
+        renderCamera.backgroundColor = Color.white; // You can change this to any color you want
+
+        // Get the position of avgPointDraw within the panel
+        Vector3 avgPointPosition = avgPointRect.position;
+
+        // Set the Camera position to match the avgPointDraw's position
+        renderCamera.transform.position = new Vector3(avgPointPosition.x, avgPointPosition.y, renderCamera.transform.position.z);
+
+        // Find all objects with the tag "IntersectionObject"
+        GameObject[] intersectionPoints = GameObject.FindGameObjectsWithTag("IntersectionObject");
+
+        // Disable the renderers of all intersection points
+        foreach (GameObject point in intersectionPoints)
+        {
+            Renderer pointRenderer = point.GetComponent<Renderer>();
+            if (pointRenderer != null)
+            {
+                pointRenderer.enabled = false;
+            }
+        }
+
+        // Render the panel to the RenderTexture
+        renderCamera.Render();
+
+        // Create a new texture and read the RenderTexture into it
         Texture2D texture = new Texture2D(renderTexture.width, renderTexture.height, TextureFormat.RGBA32, false);
         RenderTexture.active = renderTexture;
         texture.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
         texture.Apply();
 
-        // Convert the texture to a Sprite and assign it to the RawImage component
+        // Assign the texture to the RawImage component
         imageDisplay.texture = texture;
+
+        // Re-enable the renderers of all intersection points
+        foreach (GameObject point in intersectionPoints)
+        {
+            Renderer pointRenderer = point.GetComponent<Renderer>();
+            if (pointRenderer != null)
+            {
+                pointRenderer.enabled = true;
+            }
+        }
 
         // Cleanup
         RenderTexture.active = null;
+        renderCamera.targetTexture = null;
         Destroy(renderTexture);
+
+        // Deactivate the camera
+        renderCamera.gameObject.SetActive(false);
     }
 }

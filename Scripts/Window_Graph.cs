@@ -12,12 +12,16 @@ public class Window_Graph : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     [SerializeField] private Sprite circleSprite;
     [SerializeField] private Text coordinatesText;
     [SerializeField] private TMP_Dropdown dropdownMenu;
-    [SerializeField] private TMP_InputField inputFileInputField; // New input field for the CSV file name
+    [SerializeField] private TMP_InputField inputFileInputField; // Input field for the CSV file name
+    [SerializeField] private Button loadButton; // Button to trigger loading the CSV file
+    [SerializeField] private TMP_Dropdown planeDropdown; // Dropdown for selecting the plane
     private RectTransform graphContainer;
     private GameObject highlightedCircle;
     private Dictionary<GameObject, (float x, float y)> circlePositions = new Dictionary<GameObject, (float x, float y)>();
     private List<List<int>> dataList = new List<List<int>>();
     private List<string> columnOptions = new List<string>();
+    private Dictionary<string, List<List<int>>> planeDataMap = new Dictionary<string, List<List<int>>>();
+    private List<string> planeOptions = new List<string>();
 
     private void Awake()
     {
@@ -27,45 +31,25 @@ public class Window_Graph : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
             Debug.LogError("Coordinates Text not found.");
         }
         graphContainer = transform.Find("graphContainer").GetComponent<RectTransform>();
-        coordinatesText = GetComponentInChildren<Text>(); // Assuming the text is a child of the graph object
 
+        // Assign the button click event
+        loadButton.onClick.AddListener(OnLoadButtonClick);
+
+        // Initialize the dropdowns but don't display the graph yet
         InitializeDropdown();
-
-        // Display the graph
-        ShowGraph();
     }
 
     private void InitializeDropdown()
     {
         dropdownMenu.ClearOptions();
         columnOptions.Clear();
-
-        string filePath = Application.dataPath + ".csv"; // Assuming 0.csv exists
-        if (!File.Exists(filePath))
-        {
-            Debug.LogError("File not found: " + filePath);
-            return;
-        }
-
-        using (StreamReader reader = new StreamReader(filePath))
-        {
-            if (!reader.EndOfStream)
-            {
-                string[] columnHeaders = reader.ReadLine().Split(',');
-                for (int i = 1; i < columnHeaders.Length; i++) // Start from index 1 to ignore the first column
-                {
-                    columnOptions.Add(columnHeaders[i]);
-                }
-            }
-        }
-
-        dropdownMenu.AddOptions(columnOptions);
-        dropdownMenu.onValueChanged.AddListener(ChangeGraph);
+        planeDropdown.ClearOptions();
+        planeOptions.Clear();
     }
 
     private void LoadDataFromCSV(string fileName)
     {
-        string filePath = Application.dataPath + "/" + fileName + ".csv";
+        string filePath = Application.dataPath + "/Data/" + fileName + ".csv";
         if (!File.Exists(filePath))
         {
             Debug.LogError("File not found: " + filePath);
@@ -73,55 +57,96 @@ public class Window_Graph : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
         }
 
         dataList.Clear();
+        planeDataMap.Clear();
         using (StreamReader reader = new StreamReader(filePath))
         {
-            while (!reader.EndOfStream)
+            if (!reader.EndOfStream)
             {
-                string line = reader.ReadLine();
-                string[] values = line.Split(',');
-                List<int> row = new List<int>();
-                if (values.Length > 1) // Ensure there are values in the row
+                string[] columnHeaders = reader.ReadLine().Split(',');
+                for (int i = 1; i < columnHeaders.Length - 1; i++) // Adjust to ignore the last column (plane)
                 {
-                    for (int i = 1; i < values.Length; i++) // Start from index 1 to ignore the first column
+                    columnOptions.Add(columnHeaders[i]);
+                }
+
+                while (!reader.EndOfStream)
+                {
+                    string line = reader.ReadLine();
+                    string[] values = line.Split(',');
+                    List<int> row = new List<int>();
+                    if (values.Length > 1) // Ensure there are values in the row
                     {
-                        if (int.TryParse(values[i], out int intValue))
+                        for (int i = 1; i < values.Length - 1; i++) // Adjust to ignore the last column (plane)
                         {
-                            row.Add(intValue);
+                            if (int.TryParse(values[i], out int intValue))
+                            {
+                                row.Add(intValue);
+                            }
                         }
+
+                        string plane = values[values.Length - 1];
+                        if (!planeDataMap.ContainsKey(plane))
+                        {
+                            planeDataMap[plane] = new List<List<int>>();
+                            planeOptions.Add(plane);
+                        }
+                        planeDataMap[plane].Add(row);
                     }
-                    dataList.Add(row);
                 }
             }
         }
+
+        dropdownMenu.AddOptions(columnOptions);
+        dropdownMenu.onValueChanged.AddListener(ChangeGraph);
+        
+        planeDropdown.AddOptions(planeOptions);
+        planeDropdown.onValueChanged.AddListener(delegate { ShowGraph(); });
+
+        // Display the graph initially for the first plane
+        ShowGraph();
     }
 
     private void ShowGraph()
     {
-        float graphHeight = graphContainer.sizeDelta.y;
-        float graphWidth = graphContainer.sizeDelta.x;
+        ResetGraph();
 
-        if (dataList.Count == 0)
+        if (planeOptions.Count == 0 || planeDropdown.value >= planeOptions.Count)
         {
-            Debug.LogError("No data to display.");
+            Debug.LogError("No planes available to display.");
             return;
         }
 
+        string selectedPlane = planeOptions[planeDropdown.value];
+        if (!planeDataMap.ContainsKey(selectedPlane))
+        {
+            Debug.LogError("Selected plane data not found.");
+            return;
+        }
+
+        List<List<int>> selectedPlaneData = planeDataMap[selectedPlane];
+        if (selectedPlaneData.Count == 0)
+        {
+            Debug.LogError("No data to display for the selected plane.");
+            return;
+        }
+
+        float graphHeight = graphContainer.sizeDelta.y;
+        float graphWidth = graphContainer.sizeDelta.x;
+
         // Find the maximum y-value in the dataset
-        int maxYValueIndex = FindMaxYValueIndex();
-        int maxYValue = dataList[maxYValueIndex][0];
+        int maxYValue = selectedPlaneData.Max(row => row[0]);
 
         // Calculate the distance between each x-value
-        float xDistance = graphWidth / (dataList.Count - 1);
+        float xDistance = graphWidth / (selectedPlaneData.Count - 1);
 
         GameObject lastCircleGameObject = null;
 
-        // Iterate over the dataList to position the points
-        for (int i = 0; i < dataList.Count; i++)
+        // Iterate over the selectedPlaneData to position the points
+        for (int i = 0; i < selectedPlaneData.Count; i++)
         {
             float xPosition = i * xDistance;
-            float yPosition = (dataList[i][0] / (float)maxYValue) * graphHeight;
+            float yPosition = (selectedPlaneData[i][0] / (float)maxYValue) * graphHeight;
             GameObject circleGameObject = CreateCircle(new Vector2(xPosition, yPosition), i);
-            circlePositions.Add(circleGameObject, (xPosition, dataList[i][0])); // Store position and corresponding value
+            circlePositions.Add(circleGameObject, (xPosition, selectedPlaneData[i][0])); // Store position and corresponding value
 
             if (lastCircleGameObject != null)
             {
@@ -184,21 +209,6 @@ public class Window_Graph : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
         return gameObject;
     }
 
-    private int FindMaxYValueIndex()
-    {
-        int maxYValueIndex = 0;
-        int maxYValue = dataList[0][0];
-        for (int i = 1; i < dataList.Count; i++)
-        {
-            if (dataList[i][0] > maxYValue)
-            {
-                maxYValue = dataList[i][0];
-                maxYValueIndex = i;
-            }
-        }
-        return maxYValueIndex;
-    }
-
     private void CreateDotConnection(Vector2 dotPositionA, Vector2 dotPositionB)
     {
         GameObject gameObject = new GameObject("dotConnection", typeof(Image));
@@ -242,8 +252,7 @@ public class Window_Graph : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     // Method to change the graph data
     public void ChangeGraph(int newIndex)
     {
-        LoadDataFromCSV(columnOptions[newIndex]);
-        ResetGraph();
+        // No need to reload the CSV file here, just show the graph for the selected column
         ShowGraph();
     }
 
@@ -257,12 +266,13 @@ public class Window_Graph : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
         circlePositions.Clear();
     }
 
-    // Method to handle input field text change
-    public void OnInputFieldTextChanged(string text)
+    // Method to handle button click
+    private void OnLoadButtonClick()
     {
-        if (text != "")
+        string fileName = inputFileInputField.text;
+        if (!string.IsNullOrEmpty(fileName))
         {
-            LoadDataFromCSV(text);
+            LoadDataFromCSV(fileName);
             ResetGraph();
             ShowGraph();
         }

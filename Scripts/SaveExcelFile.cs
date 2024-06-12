@@ -8,15 +8,14 @@ public class ExportToCSV : MonoBehaviour
     public SaveData saveData;
 
     private readonly string[] measurements = {
-        "Cranial Base Difference",
         "Circumference",
         "Cranial Width",
         "Cranial Length",
-        "CR",
-        "CVA",
-        "Overall Symmetry Ratio",
         "Diagonal1",
-        "Diagonal2"
+        "Diagonal2",
+        "CVA",
+        "CR",
+        "Plane"
     };
 
     private void Start()
@@ -36,13 +35,16 @@ public class ExportToCSV : MonoBehaviour
         string content = $"{text1}\n{text2}\n{text3}";
 
         // Generate a filename for the CSV
-        string fileName = GenerateFileName(text1, text2);
+        string fileName = GenerateFileName(text1);
 
         // Check if filename is not empty
         if (!string.IsNullOrEmpty(fileName))
         {
-            // Generate CSV file path based on saved filename
-            string filePath = Path.Combine(Application.persistentDataPath, fileName + ".csv");
+            // Define the data folder path (assuming the folder is named "Data" and already exists)
+            string dataFolderPath = Path.Combine(Application.persistentDataPath, "Data");
+
+            // Generate CSV file path based on saved filename inside the data folder
+            string filePath = Path.Combine(dataFolderPath, fileName + ".csv");
 
             // Write content to CSV file
             WriteToCSV(filePath, content);
@@ -69,12 +71,13 @@ public class ExportToCSV : MonoBehaviour
             // Write content
             writer.Write("\"Text3\",");
             writer.WriteLine(content);
+            writer.Write("\"Text4\",");
         }
 
         Debug.Log("CSV file saved to: " + filePath);
     }
 
-    private string GenerateFileName(string text1, string text2)
+    private string GenerateFileName(string text1)
     {
         // Generate a filename based on text1
         return $"{text1}";

@@ -43,6 +43,10 @@ namespace LightsaberNamespace
         [Tooltip("Dropdown to select the target object")]
         private TMP_Dropdown _targetDropdown = null;
 
+        [SerializeField]
+        private TMP_Text _measurementsText = null;
+
+
         private Mesh _mesh;
         private Vector3[] _vertices;
         private int[] _triangles;
@@ -125,6 +129,13 @@ namespace LightsaberNamespace
         {
             string selectedObjectName = _targetDropdown.options[_targetDropdown.value].text;
             GameObject selectedObject = GameObject.Find(selectedObjectName);
+
+
+            // Update the TMP_Text with the selected option
+            if (_measurementsText != null)
+            {
+                _measurementsText.text = "Measurements (" + selectedObjectName + "):";
+            }
 
             if (selectedObject != null)
             {

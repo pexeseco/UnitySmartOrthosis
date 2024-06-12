@@ -45,6 +45,9 @@ public class PlaneCreator : MonoBehaviour
         }
         createdPlanes.Clear(); // Clear the list
 
+        // Reset the plane count
+        planeCount = 0;
+
         // Create the planes
         Vector3[] positions = new Vector3[3];
         for (int i = 0; i < 3; i++)
@@ -127,7 +130,7 @@ public class PlaneCreator : MonoBehaviour
         if (rTrSprite != null && slSprite != null)
         {
             // Adjust the position of the last plane to intersect with SL
-            Vector3 avgPositionTR = (rTrSprite.position + slSprite.position) / 2.0f;
+            Vector3 avgPositionTR = (rTrSprite.position + lTrSprite.position) / 2.0f;
             lastPlane.position = (avgPositionTR + slSprite.position) / 2.0f;
         }
 
